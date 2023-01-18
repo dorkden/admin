@@ -8,6 +8,8 @@ use App\Filament\Resources\Shop\OrderResource\Widgets\OrderStats;
 use App\Forms\Components\AddressForm;
 use App\Models\Shop\Order;
 use App\Models\Shop\Product;
+use App\Models\Shop\Shop;
+use Closure;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Form;
@@ -47,20 +49,20 @@ class OrderResource extends Resource
                         Forms\Components\Section::make('Order items')
                             ->schema(static::getFormSchema('items')),
                     ])
-                    ->columnSpan(['lg' => fn (?Order $record) => $record === null ? 3 : 2]),
+                    ->columnSpan(['lg' => fn(?Order $record) => $record === null ? 3 : 2]),
 
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Placeholder::make('created_at')
                             ->label('Created at')
-                            ->content(fn (Order $record): ?string => $record->created_at?->diffForHumans()),
+                            ->content(fn(Order $record): ?string => $record->created_at?->diffForHumans()),
 
                         Forms\Components\Placeholder::make('updated_at')
                             ->label('Last modified at')
-                            ->content(fn (Order $record): ?string => $record->updated_at?->diffForHumans()),
+                            ->content(fn(Order $record): ?string => $record->updated_at?->diffForHumans()),
                     ])
                     ->columnSpan(['lg' => 1])
-                    ->hidden(fn (?Order $record) => $record === null),
+                    ->hidden(fn(?Order $record) => $record === null),
             ])
             ->columns(3);
     }
@@ -80,10 +82,10 @@ class OrderResource extends Resource
                     ->colors([
                         'danger' => 'cancelled',
                         'warning' => 'processing',
-                        'success' => fn ($state) => in_array($state, ['delivered', 'shipped']),
+                        'success' => fn($state) => in_array($state, ['delivered', 'shipped']),
                     ]),
                 Tables\Columns\TextColumn::make('currency')
-                    ->getStateUsing(fn ($record): ?string => Currency::find($record->currency)?->name ?? null)
+                    ->getStateUsing(fn($record): ?string => Currency::find($record->currency)?->name ?? null)
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -106,19 +108,19 @@ class OrderResource extends Resource
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
-                            ->placeholder(fn ($state): string => 'Dec 18, ' . now()->subYear()->format('Y')),
+                            ->placeholder(fn($state): string => 'Dec 18, ' . now()->subYear()->format('Y')),
                         Forms\Components\DatePicker::make('created_until')
-                            ->placeholder(fn ($state): string => now()->format('M d, Y')),
+                            ->placeholder(fn($state): string => now()->format('M d, Y')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     })
                     ->indicateUsing(function (array $data): array {
@@ -172,7 +174,9 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScope(SoftDeletingScope::class);
+        return parent::getEloquentQuery()
+            ->checkAuth()
+            ->withoutGlobalScope(SoftDeletingScope::class);
     }
 
     public static function getGloballySearchableAttributes(): array
@@ -196,22 +200,35 @@ class OrderResource extends Resource
 
     protected static function getNavigationBadge(): ?string
     {
-        return static::$model::where('status', 'new')->count();
+        return static::$model::checkAuth()
+            ->where('status', 'new')
+            ->count();
     }
 
     public static function getFormSchema(?string $section = null): array
     {
         if ($section === 'items') {
             return [
+                Forms\Components\Select::make('shop_id')
+                    ->options(Shop::checkAuth()->pluck('name', 'id')->toArray())
+                    ->default(4)
+                    ->reactive()
+                    ->required(),
+
                 Forms\Components\Repeater::make('items')
                     ->relationship()
                     ->schema([
                         Forms\Components\Select::make('shop_product_id')
                             ->label('Product')
-                            ->options(Product::query()->pluck('name', 'id'))
-                            ->required()
                             ->reactive()
-                            ->afterStateUpdated(fn ($state, callable $set) => $set('unit_price', Product::find($state)?->price ?? 0))
+                            ->options(function ($get) {
+                                info('shop id: ' . $get('shop_id'));
+                                return Product::checkAuth()
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->required()
+                            ->afterStateUpdated(fn($state, callable $set) => $set('unit_price', Product::checkAuth()->find($state)?->price ?? 0))
                             ->columnSpan([
                                 'md' => 5,
                             ]),
@@ -219,6 +236,7 @@ class OrderResource extends Resource
                         Forms\Components\TextInput::make('qty')
                             ->numeric()
                             ->default(1)
+                            ->reactive()
                             ->columnSpan([
                                 'md' => 2,
                             ])
@@ -283,8 +301,8 @@ class OrderResource extends Resource
 
             Forms\Components\Select::make('currency')
                 ->searchable()
-                ->getSearchResultsUsing(fn (string $query) => Currency::where('name', 'like', "%{$query}%")->pluck('name', 'id'))
-                ->getOptionLabelUsing(fn ($value): ?string => Currency::find($value)?->getAttribute('name'))
+                ->getSearchResultsUsing(fn(string $query) => Currency::where('name', 'like', "%{$query}%")->pluck('name', 'id'))
+                ->getOptionLabelUsing(fn($value): ?string => Currency::find($value)?->getAttribute('name'))
                 ->required(),
 
             AddressForm::make('address')
@@ -294,4 +312,5 @@ class OrderResource extends Resource
                 ->columnSpan('full'),
         ];
     }
+
 }

@@ -3,6 +3,7 @@
 namespace Database\Factories\Shop;
 
 use App\Models\Shop\Product;
+use App\Models\Shop\Shop;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -34,6 +35,7 @@ class ProductFactory extends Factory
             'published_at' => $this->faker->dateTimeBetween('-1 year', '+1 year'),
             'created_at' => $this->faker->dateTimeBetween('-1 year', '-6 month'),
             'updated_at' => $this->faker->dateTimeBetween('-5 month', 'now'),
+            'shop_id' => Shop::all()->random()->id
         ];
     }
 

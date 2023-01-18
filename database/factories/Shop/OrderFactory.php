@@ -3,6 +3,7 @@
 namespace Database\Factories\Shop;
 
 use App\Models\Shop\Order;
+use App\Models\Shop\Shop;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class OrderFactory extends Factory
@@ -24,6 +25,7 @@ class OrderFactory extends Factory
             'notes' => $this->faker->realText(100),
             'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'updated_at' => $this->faker->dateTimeBetween('-5 month', 'now'),
+            'shop_id' => Shop::all()->random()->id
         ];
     }
 

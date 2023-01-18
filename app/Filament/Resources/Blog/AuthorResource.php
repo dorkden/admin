@@ -4,12 +4,14 @@ namespace App\Filament\Resources\Blog;
 
 use App\Filament\Resources\Blog\AuthorResource\Pages;
 use App\Models\Blog\Author;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
+use Illuminate\Support\Facades\Auth;
 
 class AuthorResource extends Resource
 {
@@ -24,6 +26,11 @@ class AuthorResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
 
     protected static ?int $navigationSort = 2;
+
+    protected static function shouldRegisterNavigation(): bool
+    {
+        return Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {

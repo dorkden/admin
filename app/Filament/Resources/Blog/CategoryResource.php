@@ -10,6 +10,7 @@ use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class CategoryResource extends Resource
@@ -25,6 +26,11 @@ class CategoryResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-collection';
 
     protected static ?int $navigationSort = 1;
+
+    protected static function shouldRegisterNavigation(): bool
+    {
+        return Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {

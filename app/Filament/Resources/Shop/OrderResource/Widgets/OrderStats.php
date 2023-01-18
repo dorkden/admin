@@ -21,14 +21,14 @@ class OrderStats extends BaseWidget
             ->count();
 
         return [
-            Card::make('Orders', Order::count())
+            Card::make('Orders', Order::checkAuth()->count())
                 ->chart(
                     $orderData
                         ->map(fn (TrendValue $value) => $value->aggregate)
                         ->toArray()
                 ),
-            Card::make('Open orders', Order::whereIn('status', ['open', 'processing'])->count()),
-            Card::make('Average price', number_format(Order::avg('total_price'), 2)),
+            Card::make('Open orders', Order::checkAuth()->whereIn('status', ['open', 'processing'])->count()),
+            Card::make('Average price', number_format(Order::checkAuth()->avg('total_price'), 2)),
         ];
     }
 }

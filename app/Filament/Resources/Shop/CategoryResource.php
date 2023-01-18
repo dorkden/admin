@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Shop;
 use App\Filament\Resources\Shop\CategoryResource\Pages;
 use App\Filament\Resources\Shop\CategoryResource\RelationManagers;
 use App\Models\Shop\Category;
+use App\Models\Shop\Shop;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Form;
@@ -12,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class CategoryResource extends Resource
@@ -39,7 +41,7 @@ class CategoryResource extends Resource
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->lazy()
-                                    ->afterStateUpdated(fn (string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
+                                    ->afterStateUpdated(fn(string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
 
                                 Forms\Components\TextInput::make('slug')
                                     ->disabled()
@@ -47,9 +49,15 @@ class CategoryResource extends Resource
                                     ->unique(Category::class, 'slug', ignoreRecord: true),
                             ]),
 
+                        Forms\Components\Select::make('shop_id')
+                            ->label('Shop')
+                            ->options(Shop::checkAuth()->pluck('name', 'id')),
+
                         Forms\Components\Select::make('parent_id')
                             ->label('Parent')
-                            ->relationship('parent', 'name', fn (Builder $query) => $query->where('parent_id', null))
+                            ->relationship('parent', 'name', fn(Builder $query) => $query
+                                ->whereRelation('shop', 'user_id', '=', Auth::id())
+                                ->where('parent_id', null))
                             ->searchable()
                             ->placeholder('Select parent category'),
 
@@ -60,19 +68,19 @@ class CategoryResource extends Resource
                         Forms\Components\MarkdownEditor::make('description')
                             ->label('Description'),
                     ])
-                    ->columnSpan(['lg' => fn (?Category $record) => $record === null ? 3 : 2]),
+                    ->columnSpan(['lg' => fn(?Category $record) => $record === null ? 3 : 2]),
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Placeholder::make('created_at')
                             ->label('Created at')
-                            ->content(fn (Category $record): ?string => $record->created_at?->diffForHumans()),
+                            ->content(fn(Category $record): ?string => $record->created_at?->diffForHumans()),
 
                         Forms\Components\Placeholder::make('updated_at')
                             ->label('Last modified at')
-                            ->content(fn (Category $record): ?string => $record->updated_at?->diffForHumans()),
+                            ->content(fn(Category $record): ?string => $record->updated_at?->diffForHumans()),
                     ])
                     ->columnSpan(['lg' => 1])
-                    ->hidden(fn (?Category $record) => $record === null),
+                    ->hidden(fn(?Category $record) => $record === null),
             ])
             ->columns(3);
     }
@@ -89,6 +97,10 @@ class CategoryResource extends Resource
                     ->label('Parent')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('shop.name')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\BooleanColumn::make('is_visible')
                     ->label('Visibility')
                     ->sortable(),
@@ -128,5 +140,11 @@ class CategoryResource extends Resource
             'create' => Pages\CreateCategory::route('/create'),
             'edit' => Pages\EditCategory::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->checkAuth();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models\Shop;
 
 use App\Models\Comment;
+use App\Scopes\ShopScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,5 +46,26 @@ class Product extends Model implements HasMedia
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
+    }
+
+    public function scopeCheckAuth($query)
+    {
+        if (auth()->check() && auth()->user()->isAdmin()) {
+            $query->withoutGlobalScope(ShopScope::class);
+        } else {
+            $query->withGlobalScope('admin', new ShopScope());
+        }
+
+        return $query;
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
     }
 }

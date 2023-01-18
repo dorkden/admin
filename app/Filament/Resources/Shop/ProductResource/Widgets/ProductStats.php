@@ -11,9 +11,9 @@ class ProductStats extends BaseWidget
     protected function getCards(): array
     {
         return [
-            Card::make('Total Products', Product::count()),
-            Card::make('Product Inventory', Product::sum('qty')),
-            Card::make('Average price', number_format(Product::avg('price'), 2)),
+            Card::make('Total Products', Product::checkAuth()->count()),
+            Card::make('Product Inventory', Product::checkAuth()->sum('qty')),
+            Card::make('Average price', number_format(Product::checkAuth()->avg('price'), 2)),
         ];
     }
 }

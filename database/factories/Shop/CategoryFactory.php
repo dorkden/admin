@@ -3,6 +3,7 @@
 namespace Database\Factories\Shop;
 
 use App\Models\Shop\Category;
+use App\Models\Shop\Shop;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,7 @@ class CategoryFactory extends Factory
             'is_visible' => $this->faker->boolean(),
             'created_at' => $this->faker->dateTimeBetween('-1 year', '-6 month'),
             'updated_at' => $this->faker->dateTimeBetween('-5 month', 'now'),
+            'shop_id' => Shop::all()->random()->id
         ];
     }
 }

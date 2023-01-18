@@ -2,6 +2,7 @@
 
 namespace App\Models\Shop;
 
+use App\Scopes\ShopScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,5 +51,21 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
+    }
+
+    public function scopeCheckAuth($query)
+    {
+        if (auth()->check() && auth()->user()->isAdmin()) {
+            $query->withoutGlobalScope(ShopScope::class);
+        } else {
+            $query->withGlobalScope('admin', new ShopScope());
+        }
+
+        return $query;
     }
 }

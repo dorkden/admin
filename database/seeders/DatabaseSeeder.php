@@ -15,11 +15,13 @@ use App\Models\Shop\Order;
 use App\Models\Shop\OrderItem;
 use App\Models\Shop\Payment;
 use App\Models\Shop\Product;
+use App\Models\Shop\Shop;
 use App\Models\User;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -27,6 +29,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
+        $roleUser = Role::create(['name' => 'user', 'guard_name' => 'web']);
+
         // Clear images
         Storage::deleteDirectory('public');
 
@@ -35,42 +40,50 @@ class DatabaseSeeder extends Seeder
             'name' => 'Demo User',
             'email' => 'admin@filamentphp.com',
         ]);
+
+        $user->assignRole($adminRole);
+
         $this->command->info('Admin user created.');
 
         // Shop
+        $users = User::factory()->count(10)
+            ->has(Shop::factory()->count(rand(1, 3)), 'shops')
+            ->create();
+
         $categories = ShopCategory::factory()->count(20)
-            ->has(
-                ShopCategory::factory()->count(3),
-                'children'
-            )->create();
+            ->has(ShopCategory::factory()->count(3), 'children')
+            ->create();
+
         $this->command->info('Shop categories created.');
 
         $brands = Brand::factory()->count(20)
             ->has(Address::factory()->count(rand(1, 3)))
             ->create();
+
         $this->command->info('Shop brands created.');
 
         $customers = Customer::factory()->count(1000)
             ->has(Address::factory()->count(rand(1, 3)))
             ->create();
+
         $this->command->info('Shop customers created.');
 
         $products = Product::factory()->count(50)
-            ->sequence(fn ($sequence) => ['shop_brand_id' => $brands->random(1)->first()->id])
+            ->sequence(fn($sequence) => ['shop_brand_id' => $brands->random(1)->first()->id])
             ->hasAttached($categories->random(rand(3, 6)), ['created_at' => now(), 'updated_at' => now()])
             ->has(
                 Comment::factory()->count(rand(10, 20))
-                    ->state(fn (array $attributes, Product $product) => ['customer_id' => $customers->random(1)->first()->id]),
+                    ->state(fn(array $attributes, Product $product) => ['customer_id' => $customers->random(1)->first()->id]),
             )
             ->create();
         $this->command->info('Shop products created.');
 
         $orders = Order::factory()->count(1000)
-            ->sequence(fn ($sequence) => ['shop_customer_id' => $customers->random(1)->first()->id])
+            ->sequence(fn($sequence) => ['shop_customer_id' => $customers->random(1)->first()->id])
             ->has(Payment::factory()->count(rand(1, 3)))
             ->has(
                 OrderItem::factory()->count(rand(2, 5))
-                    ->state(fn (array $attributes, Order $order) => ['shop_product_id' => $products->random(1)->first()->id]),
+                    ->state(fn(array $attributes, Order $order) => ['shop_product_id' => $products->random(1)->first()->id]),
                 'items'
             )
             ->create();
@@ -97,9 +110,9 @@ class DatabaseSeeder extends Seeder
                 Post::factory()->count(5)
                     ->has(
                         Comment::factory()->count(rand(5, 10))
-                            ->state(fn (array $attributes, Post $post) => ['customer_id' => $customers->random(1)->first()->id]),
+                            ->state(fn(array $attributes, Post $post) => ['customer_id' => $customers->random(1)->first()->id]),
                     )
-                    ->state(fn (array $attributes, Author $author) => ['blog_category_id' => $blogCategories->random(1)->first()->id]),
+                    ->state(fn(array $attributes, Author $author) => ['blog_category_id' => $blogCategories->random(1)->first()->id]),
                 'posts'
             )
             ->create();

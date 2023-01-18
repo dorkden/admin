@@ -45,4 +45,9 @@ class CreateOrder extends CreateRecord
                 ]),
         ];
     }
+
+    public function fill($values)
+    {
+        dd($values);
+    }
 }

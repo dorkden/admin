@@ -15,6 +15,7 @@ use Filament\Tables;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class PostResource extends Resource
@@ -30,6 +31,11 @@ class PostResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?int $navigationSort = 0;
+
+    protected static function shouldRegisterNavigation(): bool
+    {
+        return Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {

@@ -5,12 +5,15 @@ namespace App\Filament\Resources\Shop;
 use App\Filament\Resources\Shop\BrandResource\Pages;
 use App\Filament\Resources\Shop\BrandResource\RelationManagers;
 use App\Models\Shop\Brand;
+use App\Models\Shop\Shop;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class BrandResource extends Resource
@@ -38,13 +41,18 @@ class BrandResource extends Resource
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->lazy()
-                                    ->afterStateUpdated(fn (string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
+                                    ->afterStateUpdated(fn(string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
 
                                 Forms\Components\TextInput::make('slug')
                                     ->disabled()
                                     ->required()
                                     ->unique(Brand::class, 'slug', ignoreRecord: true),
                             ]),
+
+                        Forms\Components\Select::make('shop_id')
+                            ->label('Shop')
+                            ->options(Shop::checkAuth()->pluck('name', 'id')),
+
                         Forms\Components\TextInput::make('website')
                             ->required()
                             ->url(),
@@ -56,19 +64,19 @@ class BrandResource extends Resource
                         Forms\Components\MarkdownEditor::make('description')
                             ->label('Description'),
                     ])
-                    ->columnSpan(['lg' => fn (?Brand $record) => $record === null ? 3 : 2]),
+                    ->columnSpan(['lg' => fn(?Brand $record) => $record === null ? 3 : 2]),
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Placeholder::make('created_at')
                             ->label('Created at')
-                            ->content(fn (Brand $record): ?string => $record->created_at?->diffForHumans()),
+                            ->content(fn(Brand $record): ?string => $record->created_at?->diffForHumans()),
 
                         Forms\Components\Placeholder::make('updated_at')
                             ->label('Last modified at')
-                            ->content(fn (Brand $record): ?string => $record->updated_at?->diffForHumans()),
+                            ->content(fn(Brand $record): ?string => $record->updated_at?->diffForHumans()),
                     ])
                     ->columnSpan(['lg' => 1])
-                    ->hidden(fn (?Brand $record) => $record === null),
+                    ->hidden(fn(?Brand $record) => $record === null),
             ])
             ->columns(3);
     }
@@ -85,6 +93,10 @@ class BrandResource extends Resource
                     ->label('Website')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('shop.name')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\BooleanColumn::make('is_visible')
                     ->label('Visibility')
                     ->sortable(),
@@ -127,5 +139,11 @@ class BrandResource extends Resource
             'create' => Pages\CreateBrand::route('/create'),
             'edit' => Pages\EditBrand::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->checkAuth();
     }
 }

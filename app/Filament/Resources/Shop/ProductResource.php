@@ -6,7 +6,10 @@ use App\Filament\Resources\Shop\BrandResource\RelationManagers\ProductsRelationM
 use App\Filament\Resources\Shop\ProductResource\Pages;
 use App\Filament\Resources\Shop\ProductResource\RelationManagers;
 use App\Filament\Resources\Shop\ProductResource\Widgets\ProductStats;
+use App\Models\Shop\Brand;
+use App\Models\Shop\Category;
 use App\Models\Shop\Product;
+use App\Models\Shop\Shop;
 use Filament\Forms;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Notifications\Notification;
@@ -43,7 +46,7 @@ class ProductResource extends Resource
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->lazy()
-                                    ->afterStateUpdated(fn (string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
+                                    ->afterStateUpdated(fn(string $context, $state, callable $set) => $context === 'create' ? $set('slug', Str::slug($state)) : null),
 
                                 Forms\Components\TextInput::make('slug')
                                     ->disabled()
@@ -141,6 +144,11 @@ class ProductResource extends Resource
 
                         Forms\Components\Section::make('Associations')
                             ->schema([
+                                Forms\Components\Select::make('shop_id')
+                                    ->relationship('shop', 'name')
+                                    ->searchable()
+                                    ->hiddenOn(ProductsRelationManager::class),
+
                                 Forms\Components\Select::make('shop_brand_id')
                                     ->relationship('brand', 'name')
                                     ->searchable()
@@ -170,6 +178,11 @@ class ProductResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('brand.name')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('shop.name')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -263,11 +276,20 @@ class ProductResource extends Resource
 
     protected static function getGlobalSearchEloquentQuery(): Builder
     {
-        return parent::getGlobalSearchEloquentQuery()->with(['brand']);
+        return parent::getGlobalSearchEloquentQuery()
+            ->with(['brand']);
     }
 
     protected static function getNavigationBadge(): ?string
     {
-        return self::$model::whereColumn('qty', '<', 'security_stock')->count();
+        return self::$model::checkAuth()
+            ->whereColumn('qty', '<', 'security_stock')
+            ->count();
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->checkAuth();
     }
 }

@@ -20,11 +20,13 @@
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^2.14.1",
         "laravel/tinker": "^2.7",
+        "phpsa/filament-authentication": "^2.3",
         "squirephp/countries-en": "^3.3",
         "squirephp/currencies-en": "^3.3"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.6",
+        "doctrine/dbal": "^3.5",
         "fakerphp/faker": "^1.9.1",
         "laravel/pint": "^1.1",
         "laravel/sail": "^1.0.1",
